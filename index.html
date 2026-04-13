@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Glyphlex</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main id="welcomeView" class="welcome">
+      <header class="welcome-topbar">
+        <span class="welcome-brand" aria-label="アプリ名">Glyphlex</span>
+      </header>
+
+      <div class="welcome-body">
+        <div class="welcome-inner">
+          <nav class="home-menu" aria-label="機能メニュー">
+            <div class="home-menu-col">
+              <h3 class="home-menu-title">PDF読み込み</h3>
+              <ol class="home-menu-list">
+                <li><a class="home-menu-link" href="#pdf-upload-section">PDF読込</a></li>
+                <li>PDF画像を追加</li>
+                <li>保存</li>
+              </ol>
+            </div>
+            <div class="home-menu-col">
+              <h3 class="home-menu-title">画像取り込み</h3>
+              <ol class="home-menu-list">
+                <li>
+                  <a class="home-menu-link" href="#image-upload-section">画像ファイルの選択</a>
+                  （ホームで選べます）
+                </li>
+                <li>画像の透かしを削除</li>
+                <li>画像の拡大縮小</li>
+                <li>保存</li>
+              </ol>
+            </div>
+          </nav>
+
+          <section class="welcome-guide" aria-labelledby="guide-title">
+            <h2 id="guide-title" class="guide-title">はじめての方へ · 使い方</h2>
+            <p class="guide-lead">
+              画面上部のメニューに、<b>PDF読み込み</b>と<b>画像取り込み</b>の流れをまとめました。下に進めばOKです。
+            </p>
+
+            <ol class="guide-steps">
+              <li class="guide-step">
+                <div class="step-illu" aria-hidden="true">
+                  <svg viewBox="0 0 120 90" class="step-svg">
+                    <rect x="18" y="12" width="72" height="66" rx="6" fill="#fff" stroke="#184d3a" stroke-width="2.5" />
+                    <path d="M28 28h52M28 40h40M28 52h46" stroke="#26664e" stroke-width="3" stroke-linecap="round" />
+                    <circle cx="88" cy="58" r="16" fill="#184d3a" opacity="0.15" />
+                    <path d="M82 58l5 5 10-12" stroke="#184d3a" stroke-width="3" fill="none" stroke-linecap="round" />
+                  </svg>
+                </div>
+                <div class="step-text">
+                  <span class="step-num">1</span>
+                  <strong>PDF読込</strong>
+                  <span>下のエリアでファイルを選び、<b>PDF読込</b>を押します。</span>
+                </div>
+              </li>
+
+              <li class="guide-step">
+                <div class="step-illu" aria-hidden="true">
+                  <svg viewBox="0 0 120 90" class="step-svg">
+                    <rect x="14" y="18" width="92" height="56" rx="6" fill="#f4f7f5" stroke="#184d3a" stroke-width="2" />
+                    <rect x="38" y="30" width="44" height="32" rx="4" fill="#cde5d8" stroke="#184d3a" stroke-width="2" />
+                    <path d="M48 46h24" stroke="#184d3a" stroke-width="2.5" stroke-linecap="round" />
+                    <path d="M54 34h12M60 34v16" stroke="#184d3a" stroke-width="3" stroke-linecap="round" />
+                    <circle cx="92" cy="34" r="10" fill="#184d3a" />
+                    <path d="M88 34h8M92 30v8" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </div>
+                <div class="step-text">
+                  <span class="step-num">2</span>
+                  <strong>PDF画像を追加</strong>
+                  <span>ホームの <b>画像の取り込み</b> で先に選んでもOK。編集画面の <b>PDF画像を追加</b> からも追加できます。</span>
+                </div>
+              </li>
+
+              <li class="guide-step">
+                <div class="step-illu" aria-hidden="true">
+                  <svg viewBox="0 0 120 90" class="step-svg">
+                    <rect x="20" y="14" width="80" height="62" rx="6" fill="#fff" stroke="#184d3a" stroke-width="2" />
+                    <rect x="32" y="26" width="36" height="28" rx="3" fill="#e8f0ec" stroke="#26664e" stroke-width="1.5" />
+                    <circle cx="78" cy="44" r="6" fill="#184d3a" />
+                    <path d="M75 44h6M78 41v6" stroke="#fff" stroke-width="1.5" stroke-linecap="round" />
+                    <path d="M24 78 L60 52 L96 78" fill="none" stroke="#184d3a" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </div>
+                <div class="step-text">
+                  <span class="step-num">3</span>
+                  <strong>見やすく調整</strong>
+                  <span>PDF表示は右上の <b>＋ / －</b> で拡大縮小。画像は <b>画像の拡大縮小</b>（ハンドル）で調整できます。</span>
+                </div>
+              </li>
+
+              <li class="guide-step">
+                <div class="step-illu" aria-hidden="true">
+                  <svg viewBox="0 0 120 90" class="step-svg">
+                    <rect x="22" y="16" width="76" height="58" rx="6" fill="#fff" stroke="#184d3a" stroke-width="2" />
+                    <path d="M40 38 L60 52 L80 38" fill="none" stroke="#184d3a" stroke-width="3" stroke-linecap="round" />
+                    <rect x="48" y="54" width="24" height="14" rx="3" fill="#184d3a" />
+                    <path d="M54 61h12M60 58v6" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </div>
+                <div class="step-text">
+                  <span class="step-num">4</span>
+                  <strong>保存する</strong>
+                  <span>できあがったら <b>保存</b> を押すと、編集済みPDFがダウンロードされます。</span>
+                </div>
+              </li>
+            </ol>
+          </section>
+
+          <div class="welcome-panels">
+            <section id="pdf-upload-section" class="panel welcome-panel">
+              <h1>PDF読込</h1>
+              <p class="subtitle">PDFファイルを選んで読み込み、編集を開始します。</p>
+              <label class="file-field">
+                <span>PDFファイル</span>
+                <input id="pdfInput" type="file" accept="application/pdf" />
+              </label>
+              <p id="pdfFileName" class="file-name">未選択</p>
+              <button id="loadPdfBtn" class="load-btn hidden" type="button">
+                PDF読込
+              </button>
+            </section>
+
+            <section id="image-upload-section" class="panel welcome-panel">
+              <h2 class="welcome-panel-title">画像の取り込み</h2>
+              <p class="subtitle">
+                PNG / JPG を複数選べます。<b>PDF読込</b>後、1ページ目に自動で載ります。
+              </p>
+              <label class="file-field">
+                <span>画像ファイル</span>
+                <input
+                  id="homeImageInput"
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  multiple
+                />
+              </label>
+              <p id="homeImageSummary" class="file-name">未選択</p>
+              <button id="homeClearImagesBtn" type="button" class="secondary-btn">
+                画像の選択をクリア
+              </button>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <main id="editorView" class="editor hidden">
+      <header class="topbar">
+        <div class="brand">Glyphlex</div>
+        <div class="actions">
+          <label class="toolbar-file">
+            PDF画像を追加
+            <input id="imageInput" type="file" accept="image/png,image/jpeg" />
+          </label>
+          <button id="removeWatermarkBtn" type="button" disabled>
+            画像の透かしを削除
+          </button>
+          <button id="deleteImageBtn" type="button" disabled>画像を削除</button>
+          <button id="saveBtn" disabled>保存</button>
+        </div>
+      </header>
+
+      <nav class="toolbar">
+        <button type="button" class="tool-btn" data-tool="text">
+          <span class="icon">T</span>
+          <span class="label">テキスト</span>
+        </button>
+        <button type="button" class="tool-btn" data-tool="rect">
+          <span class="icon">▭</span>
+          <span class="label">図形</span>
+        </button>
+        <button type="button" class="tool-btn active" data-tool="image">
+          <span class="icon">🖼</span>
+          <span class="label">画像</span>
+        </button>
+        <button type="button" class="tool-btn" data-tool="stamp">
+          <span class="icon">★</span>
+          <span class="label">スタンプ</span>
+        </button>
+      </nav>
+
+      <section class="workspace">
+        <div class="stage">
+          <div class="stage-head">
+            <div id="pageInfo" class="page-info">ページ: 1 / 1</div>
+            <div class="zoom-controls">
+              <button id="zoomOutBtn" type="button">-</button>
+              <span id="zoomLabel">100%</span>
+              <button id="zoomInBtn" type="button">+</button>
+              <button id="zoomResetBtn" type="button">100%</button>
+            </div>
+          </div>
+          <div id="previewContainer" class="preview-container">
+            <canvas id="pdfCanvas"></canvas>
+            <div id="imagesLayer" class="images-layer"></div>
+            <canvas id="annotationCanvas" class="annotation-canvas"></canvas>
+          </div>
+        </div>
+
+        <aside class="sidebar">
+          <h2>サムネイル</h2>
+          <div id="thumbnailList" class="thumbnail-list"></div>
+        </aside>
+      </section>
+    </main>
+
+    <template id="thumbTemplate">
+      <button class="thumb-item" type="button">
+        <canvas class="thumb-canvas"></canvas>
+        <span class="thumb-label"></span>
+      </button>
+    </template>
+
+    <template id="imageChipTemplate">
+      <div class="image-overlay" data-image-id="" tabindex="-1">
+        <img class="chip-img" alt="" />
+        <div
+          class="resize-handle resize-handle-se"
+          title="縦横比を保って拡大縮小"
+        ></div>
+        <div class="resize-handle resize-handle-e" title="幅だけ変更"></div>
+        <div class="resize-handle resize-handle-s" title="高さだけ変更"></div>
+      </div>
+    </template>
+
+    <div id="editorHint" class="hint hidden">
+      PDF画像を追加で何枚でも配置。ハンドルで画像の拡大縮小。透かしが気になる画像は「画像の透かしを削除」を試してください。
+    </div>
+
+    <script src="./node_modules/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script type="module" src="./app.js?v=7"></script>
+  </body>
+</html>
