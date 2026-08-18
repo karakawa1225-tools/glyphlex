@@ -4,6 +4,7 @@
   "description": "PDFの上に画像を貼り付けて、編集後のPDFを保存できるアプリです。",
   "main": "app.js",
   "scripts": {
+    "build": "node scripts/build-gh-pages.mjs",
     "build:pages": "node scripts/build-gh-pages.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

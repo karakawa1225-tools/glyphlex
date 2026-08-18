@@ -8,7 +8,10 @@ const pdfFileName = document.getElementById("pdfFileName");
 const homeImageInput = document.getElementById("homeImageInput");
 const homeImageSummary = document.getElementById("homeImageSummary");
 const homeClearImagesBtn = document.getElementById("homeClearImagesBtn");
+const homeOpenImagesBtn = document.getElementById("homeOpenImagesBtn");
 const imageInput = document.getElementById("imageInput");
+const addImageLabel = document.getElementById("addImageLabel");
+const backHomeBtn = document.getElementById("backHomeBtn");
 const removeWatermarkBtn = document.getElementById("removeWatermarkBtn");
 const deleteImageBtn = document.getElementById("deleteImageBtn");
 const saveBtn = document.getElementById("saveBtn");
@@ -20,6 +23,7 @@ const imagesLayer = document.getElementById("imagesLayer");
 const imageChipTemplate = document.getElementById("imageChipTemplate");
 const thumbnailList = document.getElementById("thumbnailList");
 const thumbTemplate = document.getElementById("thumbTemplate");
+const sidebarTitle = document.getElementById("sidebarTitle");
 const pageInfo = document.getElementById("pageInfo");
 const toolButtons = [...document.querySelectorAll(".tool-btn")];
 const zoomInBtn = document.getElementById("zoomInBtn");
@@ -39,6 +43,8 @@ let pdfJsDoc = null;
 let pdfPageSize = null;
 let currentPageIndex = 0;
 let zoomScale = 1.2;
+/** @type {"pdf" | "image"} */
+let editorMode = "pdf";
 
 let dragState = null;
 let resizeState = null;
@@ -53,6 +59,14 @@ const annotationViewportByPage = new Map();
 
 /** @type {{ bytes: ArrayBuffer, mimeType: string, objectUrl: string, name: string }[]} */
 let pendingHomeImages = [];
+
+/** @type {{ id: string, bytes: ArrayBuffer, mimeType: string, objectUrl: string, name: string }[]} */
+let imageOnlyPages = [];
+
+const HINT_PDF =
+  "PDF画像を追加で何枚でも配置。ハンドルで画像の拡大縮小。透かしが気になる画像は「画像の透かしを削除」を試してください。";
+const HINT_IMAGE =
+  "表示中の画像に「画像の透かしを削除」を試せます。＋ / － で拡大縮小。「画像を保存」で処理後の画像をダウンロードします。";
 
 const hasPdfJs = typeof pdfjsLib !== "undefined";
 const hasPdfLib =
@@ -93,10 +107,15 @@ function revokePendingHomeImages() {
 
 function updateHomeImageSummary() {
   if (!homeImageSummary) return;
-  if (pendingHomeImages.length === 0) {
-    homeImageSummary.textContent = "未選択（PDF読込時に1ページ目へ配置）";
+  const n = pendingHomeImages.length;
+  if (n === 0) {
+    homeImageSummary.textContent =
+      "未選択（PDFなしで編集、またはPDF読込時に1ページ目へ配置）";
   } else {
-    homeImageSummary.textContent = `${pendingHomeImages.length}枚選択中（PDF読込で1ページ目に載ります）`;
+    homeImageSummary.textContent = `${n}枚選択中（「画像を開いて編集」か、PDF読込で使えます）`;
+  }
+  if (homeOpenImagesBtn) {
+    homeOpenImagesBtn.classList.toggle("hidden", n === 0);
   }
 }
 
@@ -142,6 +161,228 @@ async function flushPendingHomeImagesToFirstPage() {
   }
 }
 
+function isAcceptedImageType(mimeType) {
+  return ["image/png", "image/jpeg", "image/jpg"].includes(mimeType);
+}
+
+function applyEditorChrome() {
+  const imageMode = editorMode === "image";
+  editorView.classList.toggle("image-mode", imageMode);
+  if (addImageLabel) {
+    addImageLabel.textContent = imageMode ? "画像を追加" : "PDF画像を追加";
+  }
+  saveBtn.textContent = imageMode ? "画像を保存" : "保存";
+  if (sidebarTitle) {
+    sidebarTitle.textContent = imageMode ? "画像一覧" : "サムネイル";
+  }
+  editorHint.textContent = imageMode ? HINT_IMAGE : HINT_PDF;
+  if (zoomResetBtn) {
+    zoomResetBtn.textContent = imageMode ? "フィット" : "100%";
+  }
+  annotationCanvas.style.pointerEvents =
+    imageMode || activeTool === "image" ? "none" : "auto";
+}
+
+function returnToHome() {
+  if (editorMode === "image" && imageOnlyPages.length > 0) {
+    pendingHomeImages = imageOnlyPages.map((p) => ({
+      bytes: p.bytes,
+      mimeType: p.mimeType,
+      objectUrl: p.objectUrl,
+      name: p.name,
+    }));
+    imageOnlyPages = [];
+    updateHomeImageSummary();
+  }
+  editorMode = "pdf";
+  applyEditorChrome();
+  editorView.classList.add("hidden");
+  welcomeView.classList.remove("hidden");
+  editorHint.classList.add("hidden");
+  selectedImageId = null;
+}
+
+function getImageFitZoomScale(naturalWidth, naturalHeight) {
+  const stage = document.querySelector(".stage");
+  if (!stage) return 1.2;
+  const availW = Math.max(stage.clientWidth - 48, 200);
+  const availH = Math.max(stage.clientHeight - 80, 200);
+  const fit = Math.min(availW / naturalWidth, availH / naturalHeight, 1);
+  return fit * 1.2;
+}
+
+function loadHtmlImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+async function renderImageOnlyPage(pageIndex) {
+  const state = imageOnlyPages[pageIndex];
+  if (!state) return;
+  const img = await loadHtmlImage(state.objectUrl);
+  const displayScale = zoomScale / 1.2;
+  const w = Math.max(1, Math.round(img.naturalWidth * displayScale));
+  const h = Math.max(1, Math.round(img.naturalHeight * displayScale));
+  pdfCanvas.width = w;
+  pdfCanvas.height = h;
+  annotationCanvas.width = w;
+  annotationCanvas.height = h;
+  annotationCanvas.style.width = `${w}px`;
+  annotationCanvas.style.height = `${h}px`;
+  previewContainer.style.width = `${w}px`;
+  previewContainer.style.height = `${h}px`;
+  const ctx = pdfCanvas.getContext("2d");
+  ctx.clearRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+  const name = state.name ? `　${state.name}` : "";
+  pageInfo.textContent = `画像: ${pageIndex + 1} / ${imageOnlyPages.length}${name}`;
+  zoomLabel.textContent = `${Math.round(displayScale * 100)}%`;
+  imagesLayer.innerHTML = "";
+}
+
+async function renderImageThumbnails() {
+  thumbnailList.innerHTML = "";
+  for (let i = 0; i < imageOnlyPages.length; i += 1) {
+    const state = imageOnlyPages[i];
+    const thumbNode = thumbTemplate.content.firstElementChild.cloneNode(true);
+    const thumbCanvas = thumbNode.querySelector(".thumb-canvas");
+    const thumbLabel = thumbNode.querySelector(".thumb-label");
+    thumbLabel.textContent = state.name || `${i + 1}枚目`;
+    if (i === currentPageIndex) thumbNode.classList.add("active");
+
+    try {
+      const img = await loadHtmlImage(state.objectUrl);
+      if (img.naturalWidth) {
+        const maxW = 190;
+        const scale = maxW / img.naturalWidth;
+        thumbCanvas.width = maxW;
+        thumbCanvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+        thumbCanvas.getContext("2d").drawImage(
+          img,
+          0,
+          0,
+          thumbCanvas.width,
+          thumbCanvas.height
+        );
+      }
+    } catch {
+      thumbLabel.textContent = `${state.name || i + 1}（表示できません）`;
+    }
+
+    thumbNode.addEventListener("click", async () => {
+      currentPageIndex = i;
+      await renderImageOnlyPage(currentPageIndex);
+      setActiveThumbnail();
+      updateSaveButtonState();
+    });
+
+    thumbnailList.appendChild(thumbNode);
+  }
+}
+
+async function openImageOnlyEditor() {
+  if (pendingHomeImages.length === 0 && imageOnlyPages.length === 0) return;
+
+  editorMode = "image";
+  selectedImageId = null;
+  currentPageIndex = 0;
+  if (homeOpenImagesBtn) homeOpenImagesBtn.disabled = true;
+
+  if (pendingHomeImages.length > 0) {
+    imageOnlyPages = pendingHomeImages.map((p) => ({
+      id: crypto.randomUUID(),
+      bytes: p.bytes,
+      mimeType: p.mimeType,
+      objectUrl: p.objectUrl,
+      name: p.name,
+    }));
+    pendingHomeImages = [];
+    updateHomeImageSummary();
+  }
+
+  applyEditorChrome();
+  welcomeView.classList.add("hidden");
+  editorView.classList.remove("hidden");
+  editorHint.classList.remove("hidden");
+
+  try {
+    const first = imageOnlyPages[0];
+    if (first) {
+      const img = await loadHtmlImage(first.objectUrl);
+      zoomScale = getImageFitZoomScale(img.naturalWidth, img.naturalHeight);
+    }
+    await renderImageOnlyPage(currentPageIndex);
+    await renderImageThumbnails();
+    updateSaveButtonState();
+  } catch (error) {
+    console.error("画像読み込みエラー:", error);
+    alert("画像の読み込みに失敗しました。別のファイルで試してください。");
+    returnToHome();
+  } finally {
+    if (homeOpenImagesBtn) homeOpenImagesBtn.disabled = false;
+  }
+}
+
+async function addFilesToImageOnlyPages(files) {
+  let added = 0;
+  for (const file of files) {
+    if (!isAcceptedImageType(file.type)) continue;
+    const bytes = (await file.arrayBuffer()).slice(0);
+    const objectUrl = URL.createObjectURL(file);
+    imageOnlyPages.push({
+      id: crypto.randomUUID(),
+      bytes,
+      mimeType: file.type,
+      objectUrl,
+      name: file.name,
+    });
+    added += 1;
+  }
+  return added;
+}
+
+async function deleteCurrentImageOnlyPage() {
+  if (imageOnlyPages.length === 0) return;
+  const [removed] = imageOnlyPages.splice(currentPageIndex, 1);
+  if (removed) URL.revokeObjectURL(removed.objectUrl);
+  if (imageOnlyPages.length === 0) {
+    updateHomeImageSummary();
+    returnToHome();
+    return;
+  }
+  currentPageIndex = Math.min(currentPageIndex, imageOnlyPages.length - 1);
+  await renderImageOnlyPage(currentPageIndex);
+  await renderImageThumbnails();
+  updateSaveButtonState();
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function editedImageFileName(name, mimeType) {
+  const ext = mimeType === "image/png" ? "png" : "jpg";
+  const base = (name || "image").replace(/\.[^.]+$/, "") || "image";
+  return `${base}_edited.${ext}`;
+}
+
+async function saveImageOnly() {
+  const state = imageOnlyPages[currentPageIndex];
+  if (!state) return;
+  const blob = new Blob([state.bytes], { type: state.mimeType });
+  downloadBlob(blob, editedImageFileName(state.name, state.mimeType));
+}
+
 pdfInput.addEventListener("change", (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -156,7 +397,7 @@ homeImageInput.addEventListener("change", async (event) => {
   if (!files?.length) return;
   for (const file of files) {
     const mimeType = file.type;
-    if (!["image/png", "image/jpeg", "image/jpg"].includes(mimeType)) continue;
+    if (!isAcceptedImageType(mimeType)) continue;
     const bytes = (await file.arrayBuffer()).slice(0);
     const objectUrl = URL.createObjectURL(file);
     pendingHomeImages.push({
@@ -171,6 +412,16 @@ homeImageInput.addEventListener("change", async (event) => {
 
 homeClearImagesBtn.addEventListener("click", () => {
   revokePendingHomeImages();
+});
+
+homeOpenImagesBtn.addEventListener("click", () => {
+  openImageOnlyEditor().catch(() => {
+    alert("画像の読み込みに失敗しました。");
+  });
+});
+
+backHomeBtn.addEventListener("click", () => {
+  returnToHome();
 });
 
 loadPdfBtn.addEventListener("click", async () => {
@@ -196,6 +447,8 @@ loadPdfBtn.addEventListener("click", async () => {
     annotationsByPage.clear();
     annotationViewportByPage.clear();
     selectedImageId = null;
+    editorMode = "pdf";
+    applyEditorChrome();
     await renderPage(currentPageIndex);
     await flushPendingHomeImagesToFirstPage();
     renderImagesLayer();
@@ -216,58 +469,83 @@ loadPdfBtn.addEventListener("click", async () => {
 });
 
 imageInput.addEventListener("change", async (event) => {
-  const file = event.target.files?.[0];
-  if (!file) return;
+  const files = event.target.files;
   imageInput.value = "";
+  if (!files?.length) return;
+
+  if (editorMode === "image") {
+    const added = await addFilesToImageOnlyPages(files);
+    if (added === 0) {
+      alert("PNGまたはJPG画像を選択してください。");
+      return;
+    }
+    currentPageIndex = imageOnlyPages.length - 1;
+    await renderImageOnlyPage(currentPageIndex);
+    await renderImageThumbnails();
+    updateSaveButtonState();
+    return;
+  }
+
   if (!sourcePdfBytes) {
     alert("先にPDF読込でファイルをアップロードしてください。");
     return;
   }
 
-  const mimeType = file.type;
-  if (!["image/png", "image/jpeg", "image/jpg"].includes(mimeType)) {
-    alert("PNGまたはJPG画像を選択してください。");
-    return;
+  for (const file of files) {
+    const mimeType = file.type;
+    if (!isAcceptedImageType(mimeType)) {
+      alert("PNGまたはJPG画像を選択してください。");
+      continue;
+    }
+
+    const bytes = (await file.arrayBuffer()).slice(0);
+    const objectUrl = URL.createObjectURL(file);
+    const list = getImagesList(currentPageIndex);
+    const idx = list.length;
+    const cw = pdfCanvas.width;
+    const ch = pdfCanvas.height;
+
+    await new Promise((resolve) => {
+      const imgEl = new Image();
+      imgEl.onload = () => {
+        const maxWidth = Math.max(120, cw * 0.35);
+        const ratio = imgEl.naturalWidth / imgEl.naturalHeight;
+        const widthPx = maxWidth;
+        const heightPx = widthPx / ratio;
+        const margin = 20 + idx * 18;
+
+        const state = {
+          id: crypto.randomUUID(),
+          bytes,
+          mimeType,
+          objectUrl,
+          leftNorm: margin / cw,
+          topNorm: margin / ch,
+          widthNorm: widthPx / cw,
+          heightNorm: heightPx / ch,
+        };
+        list.push(state);
+        selectedImageId = state.id;
+        resolve();
+      };
+      imgEl.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        alert("画像の読み込みに失敗しました。");
+        resolve();
+      };
+      imgEl.src = objectUrl;
+    });
   }
 
-  const bytes = (await file.arrayBuffer()).slice(0);
-  const objectUrl = URL.createObjectURL(file);
-  const list = getImagesList(currentPageIndex);
-  const idx = list.length;
-  const cw = pdfCanvas.width;
-  const ch = pdfCanvas.height;
-
-  const imgEl = new Image();
-  imgEl.onload = () => {
-    const maxWidth = Math.max(120, cw * 0.35);
-    const ratio = imgEl.naturalWidth / imgEl.naturalHeight;
-    let widthPx = maxWidth;
-    let heightPx = widthPx / ratio;
-    const margin = 20 + idx * 18;
-
-    const state = {
-      id: crypto.randomUUID(),
-      bytes,
-      mimeType,
-      objectUrl,
-      leftNorm: margin / cw,
-      topNorm: margin / ch,
-      widthNorm: widthPx / cw,
-      heightNorm: heightPx / ch,
-    };
-    list.push(state);
-    selectedImageId = state.id;
-    renderImagesLayer();
-    updateSaveButtonState();
-  };
-  imgEl.onerror = () => {
-    URL.revokeObjectURL(objectUrl);
-    alert("画像の読み込みに失敗しました。");
-  };
-  imgEl.src = objectUrl;
+  renderImagesLayer();
+  updateSaveButtonState();
 });
 
 deleteImageBtn.addEventListener("click", () => {
+  if (editorMode === "image") {
+    deleteCurrentImageOnlyPage();
+    return;
+  }
   deleteSelectedImage();
 });
 
@@ -278,6 +556,10 @@ removeWatermarkBtn.addEventListener("click", () => {
 });
 
 saveBtn.addEventListener("click", async () => {
+  if (editorMode === "image") {
+    await saveImageOnly();
+    return;
+  }
   if (!sourcePdfBytesForLib) return;
 
   const pdfDoc = await PDFDocument.load(sourcePdfBytesForLib.slice(0));
@@ -357,6 +639,13 @@ saveBtn.addEventListener("click", async () => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Delete" || event.key === "Backspace") {
+    const tag = event.target?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA") return;
+    if (editorMode === "image" && imageOnlyPages.length > 0) {
+      event.preventDefault();
+      deleteCurrentImageOnlyPage();
+      return;
+    }
     if (selectedImageId && activeTool === "image") {
       event.preventDefault();
       deleteSelectedImage();
@@ -365,18 +654,40 @@ document.addEventListener("keydown", (event) => {
 });
 
 zoomInBtn.addEventListener("click", async () => {
+  if (editorMode === "image") {
+    zoomScale = Math.min(zoomScale + 0.2, 6);
+    await renderImageOnlyPage(currentPageIndex);
+    return;
+  }
   syncAllImageNormsFromDom();
   zoomScale = Math.min(zoomScale + 0.2, 3);
   await renderPage(currentPageIndex);
 });
 
 zoomOutBtn.addEventListener("click", async () => {
+  if (editorMode === "image") {
+    zoomScale = Math.max(zoomScale - 0.2, 0.24);
+    await renderImageOnlyPage(currentPageIndex);
+    return;
+  }
   syncAllImageNormsFromDom();
   zoomScale = Math.max(zoomScale - 0.2, 0.6);
   await renderPage(currentPageIndex);
 });
 
 zoomResetBtn.addEventListener("click", async () => {
+  if (editorMode === "image") {
+    const state = imageOnlyPages[currentPageIndex];
+    if (!state) return;
+    try {
+      const img = await loadHtmlImage(state.objectUrl);
+      zoomScale = getImageFitZoomScale(img.naturalWidth, img.naturalHeight);
+    } catch {
+      zoomScale = 1.2;
+    }
+    await renderImageOnlyPage(currentPageIndex);
+    return;
+  }
   syncAllImageNormsFromDom();
   zoomScale = 1.2;
   await renderPage(currentPageIndex);
@@ -440,19 +751,11 @@ function getSelectedImageState() {
   return list.find((s) => s.id === selectedImageId) || null;
 }
 
-async function applyWatermarkReduction() {
-  const state = getSelectedImageState();
-  if (!state) return;
-  const img = new Image();
-  img.crossOrigin = "anonymous";
-  await new Promise((resolve, reject) => {
-    img.onload = resolve;
-    img.onerror = reject;
-    img.src = state.objectUrl;
-  });
+async function reduceWatermarkOnState(state) {
+  const img = await loadHtmlImage(state.objectUrl);
   let w = img.naturalWidth;
   let h = img.naturalHeight;
-  if (!w || !h) return;
+  if (!w || !h) return false;
   const maxPx = 4096;
   if (w > maxPx || h > maxPx) {
     const scale = Math.min(maxPx / w, maxPx / h);
@@ -470,12 +773,30 @@ async function applyWatermarkReduction() {
   const blob = await new Promise((res) => {
     canvas.toBlob(res, outMime, outMime === "image/jpeg" ? 0.92 : undefined);
   });
-  if (!blob) return;
+  if (!blob) return false;
   const newBytes = (await blob.arrayBuffer()).slice(0);
   URL.revokeObjectURL(state.objectUrl);
   state.bytes = newBytes;
   state.mimeType = outMime;
   state.objectUrl = URL.createObjectURL(blob);
+  return true;
+}
+
+async function applyWatermarkReduction() {
+  if (editorMode === "image") {
+    const state = imageOnlyPages[currentPageIndex];
+    if (!state) return;
+    const ok = await reduceWatermarkOnState(state);
+    if (!ok) return;
+    await renderImageOnlyPage(currentPageIndex);
+    await renderImageThumbnails();
+    updateSaveButtonState();
+    return;
+  }
+  const state = getSelectedImageState();
+  if (!state) return;
+  const ok = await reduceWatermarkOnState(state);
+  if (!ok) return;
   renderImagesLayer();
   selectImageChip(state.id);
   updateSaveButtonState();
@@ -690,6 +1011,13 @@ function hasAnyAnnotations() {
 }
 
 function updateSaveButtonState() {
+  if (editorMode === "image") {
+    const hasPage = imageOnlyPages.length > 0;
+    saveBtn.disabled = !hasPage;
+    removeWatermarkBtn.disabled = !hasPage;
+    deleteImageBtn.disabled = !hasPage;
+    return;
+  }
   const list = getImagesList(currentPageIndex);
   const hasSelected =
     Boolean(selectedImageId) && list.some((s) => s.id === selectedImageId);

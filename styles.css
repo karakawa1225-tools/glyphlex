@@ -303,6 +303,24 @@ h1 { margin: 0 0 8px; color: var(--deep-green); }
   cursor: pointer;
 }
 
+#homeOpenImagesBtn {
+  margin-top: 10px;
+  width: 100%;
+}
+
+#homeOpenImagesBtn.hidden {
+  display: none;
+}
+
+.load-btn:disabled {
+  background: #96b0a5;
+  cursor: not-allowed;
+}
+
+#homeOpenImagesBtn.hidden + .secondary-btn {
+  margin-top: 10px;
+}
+
 .editor {
   padding: 10px 16px 16px;
   min-height: 100vh;
@@ -349,6 +367,7 @@ h1 { margin: 0 0 8px; color: var(--deep-green); }
 }
 
 .toolbar-file,
+#backHomeBtn,
 #removeWatermarkBtn,
 #deleteImageBtn,
 #saveBtn {
@@ -621,6 +640,24 @@ h1 { margin: 0 0 8px; color: var(--deep-green); }
 
 .hidden { display: none; }
 
+.editor.image-mode .toolbar {
+  display: none;
+}
+
+.editor.image-mode .annotation-canvas,
+.editor.image-mode .images-layer {
+  display: none;
+}
+
+.editor.image-mode .workspace {
+  min-height: calc(100vh - 110px);
+}
+
+.editor.image-mode .sidebar,
+.editor.image-mode .stage {
+  height: calc(100vh - 115px);
+}
+
 @media (max-width: 900px) {
   .workspace { grid-template-columns: 1fr; }
   .sidebar { height: auto; max-height: 300px; }
@@ -633,4 +670,15 @@ h1 { margin: 0 0 8px; color: var(--deep-green); }
   }
   .step-text { align-items: center; }
   .step-illu { max-width: 200px; margin: 0 auto; }
+  .editor.image-mode .workspace {
+    min-height: 0;
+  }
+  .editor.image-mode .sidebar {
+    height: auto;
+    max-height: 300px;
+  }
+  .editor.image-mode .stage {
+    height: auto;
+    max-height: 70vh;
+  }
 }

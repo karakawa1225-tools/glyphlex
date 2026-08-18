@@ -28,11 +28,11 @@
               <ol class="home-menu-list">
                 <li>
                   <a class="home-menu-link" href="#image-upload-section">画像ファイルの選択</a>
-                  （ホームで選べます）
+                  （PDFなしでも可）
                 </li>
                 <li>画像の透かしを削除</li>
                 <li>画像の拡大縮小</li>
-                <li>保存</li>
+                <li>画像を保存</li>
               </ol>
             </div>
           </nav>
@@ -130,7 +130,7 @@
             <section id="image-upload-section" class="panel welcome-panel">
               <h2 class="welcome-panel-title">画像の取り込み</h2>
               <p class="subtitle">
-                PNG / JPG を複数選べます。<b>PDF読込</b>後、1ページ目に自動で載ります。
+                PNG / JPG を複数選べます。<b>PDFなし</b>で透かし削除・保存もできます。PDF読込後は1ページ目へ載ります。
               </p>
               <label class="file-field">
                 <span>画像ファイル</span>
@@ -142,6 +142,9 @@
                 />
               </label>
               <p id="homeImageSummary" class="file-name">未選択</p>
+              <button id="homeOpenImagesBtn" class="load-btn hidden" type="button">
+                画像を開いて編集
+              </button>
               <button id="homeClearImagesBtn" type="button" class="secondary-btn">
                 画像の選択をクリア
               </button>
@@ -155,9 +158,10 @@
       <header class="topbar">
         <div class="brand">Glyphlex</div>
         <div class="actions">
+          <button id="backHomeBtn" type="button">ホームへ</button>
           <label class="toolbar-file">
-            PDF画像を追加
-            <input id="imageInput" type="file" accept="image/png,image/jpeg" />
+            <span id="addImageLabel">PDF画像を追加</span>
+            <input id="imageInput" type="file" accept="image/png,image/jpeg" multiple />
           </label>
           <button id="removeWatermarkBtn" type="button" disabled>
             画像の透かしを削除
@@ -205,7 +209,7 @@
         </div>
 
         <aside class="sidebar">
-          <h2>サムネイル</h2>
+          <h2 id="sidebarTitle">サムネイル</h2>
           <div id="thumbnailList" class="thumbnail-list"></div>
         </aside>
       </section>
@@ -235,6 +239,6 @@
     </div>
 
     <script src="./node_modules/pdf-lib/dist/pdf-lib.min.js"></script>
-    <script type="module" src="./app.js?v=7"></script>
+    <script type="module" src="./app.js?v=8"></script>
   </body>
 </html>
