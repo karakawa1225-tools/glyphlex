@@ -137,7 +137,7 @@
                 <input
                   id="homeImageInput"
                   type="file"
-                  accept="image/png,image/jpeg"
+                  accept="image/png,image/jpeg,.png,.jpg,.jpeg"
                   multiple
                 />
               </label>
@@ -161,7 +161,7 @@
           <button id="backHomeBtn" type="button">ホームへ</button>
           <label class="toolbar-file">
             <span id="addImageLabel">PDF画像を追加</span>
-            <input id="imageInput" type="file" accept="image/png,image/jpeg" multiple />
+            <input id="imageInput" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" multiple />
           </label>
           <button id="removeWatermarkBtn" type="button" disabled>
             画像の透かしを削除
@@ -239,6 +239,6 @@
     </div>
 
     <script src="./node_modules/pdf-lib/dist/pdf-lib.min.js"></script>
-    <script type="module" src="./app.js?v=8"></script>
+    <script type="module" src="./app.js?v=9"></script>
   </body>
 </html>

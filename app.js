@@ -161,8 +161,22 @@ async function flushPendingHomeImagesToFirstPage() {
   }
 }
 
-function isAcceptedImageType(mimeType) {
-  return ["image/png", "image/jpeg", "image/jpg"].includes(mimeType);
+function snapshotFiles(fileList) {
+  return Array.from(fileList || []);
+}
+
+function inferImageMime(file) {
+  const type = String(file?.type || "").toLowerCase();
+  if (type === "image/png") return "image/png";
+  if (type === "image/jpeg" || type === "image/jpg" || type === "image/pjpeg") {
+    return "image/jpeg";
+  }
+  const name = String(file?.name || "").toLowerCase();
+  if (name.endsWith(".png")) return "image/png";
+  if (name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".jfif")) {
+    return "image/jpeg";
+  }
+  return null;
 }
 
 function applyEditorChrome() {
@@ -331,13 +345,14 @@ async function openImageOnlyEditor() {
 async function addFilesToImageOnlyPages(files) {
   let added = 0;
   for (const file of files) {
-    if (!isAcceptedImageType(file.type)) continue;
+    const mimeType = inferImageMime(file);
+    if (!mimeType) continue;
     const bytes = (await file.arrayBuffer()).slice(0);
     const objectUrl = URL.createObjectURL(file);
     imageOnlyPages.push({
       id: crypto.randomUUID(),
       bytes,
-      mimeType: file.type,
+      mimeType,
       objectUrl,
       name: file.name,
     });
@@ -392,12 +407,13 @@ pdfInput.addEventListener("change", (event) => {
 });
 
 homeImageInput.addEventListener("change", async (event) => {
-  const files = event.target.files;
+  const files = snapshotFiles(event.target.files);
   homeImageInput.value = "";
-  if (!files?.length) return;
+  if (files.length === 0) return;
+  let added = 0;
   for (const file of files) {
-    const mimeType = file.type;
-    if (!isAcceptedImageType(mimeType)) continue;
+    const mimeType = inferImageMime(file);
+    if (!mimeType) continue;
     const bytes = (await file.arrayBuffer()).slice(0);
     const objectUrl = URL.createObjectURL(file);
     pendingHomeImages.push({
@@ -406,8 +422,12 @@ homeImageInput.addEventListener("change", async (event) => {
       objectUrl,
       name: file.name,
     });
+    added += 1;
   }
   updateHomeImageSummary();
+  if (added === 0) {
+    alert("PNGまたはJPG画像を選択してください。");
+  }
 });
 
 homeClearImagesBtn.addEventListener("click", () => {
@@ -469,9 +489,9 @@ loadPdfBtn.addEventListener("click", async () => {
 });
 
 imageInput.addEventListener("change", async (event) => {
-  const files = event.target.files;
+  const files = snapshotFiles(event.target.files);
   imageInput.value = "";
-  if (!files?.length) return;
+  if (files.length === 0) return;
 
   if (editorMode === "image") {
     const added = await addFilesToImageOnlyPages(files);
@@ -492,8 +512,8 @@ imageInput.addEventListener("change", async (event) => {
   }
 
   for (const file of files) {
-    const mimeType = file.type;
-    if (!isAcceptedImageType(mimeType)) {
+    const mimeType = inferImageMime(file);
+    if (!mimeType) {
       alert("PNGまたはJPG画像を選択してください。");
       continue;
     }
